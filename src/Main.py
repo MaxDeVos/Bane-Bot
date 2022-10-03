@@ -1,21 +1,10 @@
 import logging
 import os
 import sys
+from abc import ABC
 
 from discord.ext import commands
 from datetime import datetime
-
-production = False
-if len(sys.argv) > 1:
-    try:
-        os.chdir(sys.argv[1])
-        production = True
-        logging.info("RUNNING IN PRODUCTION")
-    except Exception as e:
-        logging.error(f"FAILED TO FIND DIRECTORY: {sys.argv[1]}")
-else:
-    # active_guild_id = test_guild_id
-    logging.info("RUNNING IN TESTING")
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -26,7 +15,8 @@ logging.basicConfig(
     ]
 )
 
-from src import active_guild_id, test_guild_id
+sys.path.insert(1, '')  # if this isn't here, local imports fail in Docker. ¯\_(ツ)_/¯
+
 from src.EmojiRegistration.EmojiRegistrationCog import EmojiRegistrationCog
 from src.PinSystem.PinCog import PinCog
 from src.TimestampGenerator import TimestampGenerator
@@ -34,9 +24,9 @@ from src.Translation.TranslationCog import TranslationCog
 from src.WikiCurrentCog.WikiCurrentCog import WikiCurrentCog
 
 ts = TimestampGenerator("BANE")
+active_guild_id = int(os.environ.get("GUILD_ID"))
 
-
-class Bot(commands.Bot):
+class Bot(commands.Bot, ABC):
 
     def __init__(self, *args, **kwargs):
         self.guild = None
@@ -73,13 +63,6 @@ class Bot(commands.Bot):
         # await msg.add_reaction("🟠")
 
 
-# Read API key from file
-if production:
-    f = open("data/key.txt", "r")
-else:
-    f = open("data/test_key.txt", "r")
-key = f.read()
-
 # Create and start Bane Bot
 bot = Bot()
-bot.run(key)
+bot.run(os.environ.get('APIKEY'))
