@@ -1,6 +1,7 @@
 import asyncio
 import io
 import logging
+import os
 
 import aiohttp
 import discord
@@ -10,6 +11,7 @@ import time
 import src.PinSystem.HistoryManager
 from src.TimestampGenerator import TimestampGenerator
 
+log = logging.getLogger(__name__)
 s = sched.scheduler(time.time, time.sleep)
 ts = TimestampGenerator("PINS")
 
@@ -20,7 +22,7 @@ class PinHandler:
     pin_channel: discord.TextChannel
 
     def __init__(self, channel, guild):
-        self.pin_threshold = 12
+        self.pin_threshold = int(os.environ.get("PIN_THRESHOLD"))
         self.pin_channel = channel
         self.guild = guild
         self.pins_ready = False
@@ -33,18 +35,18 @@ class PinHandler:
                 try:
                     self.pinned_messages.append(int(message.content.split("\n")[0].split("/")[6]))
                 except:
-                    # logging.info("ERROR", getTimeStamp(), "Failed to load previous pin: ", message)
+                    # log.info("ERROR", getTimeStamp(), "Failed to load previous pin: ", message)
                     pass
         self.pins_ready = True
         # await self.comb_for_missed_pins()
-        logging.info(f"{ts.get_time_stamp()} Completed Collecting Pin History")
-        logging.info(f"{ts.get_time_stamp()} Successfully Started Pin Manager")
+        log.info(f"{ts.get_time_stamp()} Completed Collecting Pin History")
+        log.info(f"{ts.get_time_stamp()} Successfully Started Pin Manager")
 
     async def pin(self, message, force=False):
         if not self.pins_ready and not force:
-            logging.error(f"{ts.get_time_stamp()} Attempted to pin before PinHandler was ready. You'll have to try again")
+            log.error(f"{ts.get_time_stamp()} Attempted to pin before PinHandler was ready. You'll have to try again")
         else:
-            logging.info(f"{ts.get_time_stamp()} Pinning Message From: " + message.author.name)
+            log.info(f"{ts.get_time_stamp()} Pinning Message From: " + message.author.name)
             self.pinned_messages.append(message.id)
 
             files = []
@@ -52,7 +54,7 @@ class PinHandler:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(attachment.url) as resp:
                         if resp.status != 200:
-                            logging.error(f"{ts.get_time_stamp()} Couldn't download file")
+                            log.error(f"{ts.get_time_stamp()} Couldn't download file")
                         data = io.BytesIO(await resp.read())
                         files.append(discord.File(data, attachment.filename))
 
@@ -79,7 +81,7 @@ class PinHandler:
             try:
                 for message in await src.PinSystem.HistoryManager.get_posts_above_reaction_threshold_channel(channel, self.pinned_messages, 6):
                     to_pin.append(message)
-                logging.info("Combed Through", channel.name)
+                log.info("Combed Through", channel.name)
             except AttributeError:
                 pass
             except discord.errors.Forbidden:

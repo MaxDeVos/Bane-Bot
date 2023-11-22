@@ -1,19 +1,64 @@
 import logging
+import logging.config
+
+LOGGING_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'standard': {
+            'format': "[%(levelname)s] %(message)s"
+        },
+    },
+    'handlers': {
+        'default': {
+            'level': 'INFO',
+            'formatter': 'standard',
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',  # Default is stderr
+        },
+    },
+    'loggers': {
+        '': {  # root logger
+            'handlers': ['default'],
+            'level': 'WARNING',
+            'propagate': False
+        },
+        'src.PinSystem.PinCog': {
+            'handlers': ['default'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'src.Translation.TranslationCog': {
+            'handlers': ['default'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        '__main__': {  # if __name__ == '__main__'
+            'handlers': ['default'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+    }
+}
+
+logging.config.dictConfig(LOGGING_CONFIG)
+log = logging.getLogger(__name__)
+
 import os
 import sys
 from abc import ABC
 
+import discord
 from discord.ext import commands
 from datetime import datetime
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="[%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler(f'logs/LOG-{datetime.now().strftime("%Y-%m-%d %H_%M_%S")}.log'),
-        logging.StreamHandler()
-    ]
-)
+
+# {level = logging.DEBUG,
+# format = "[%(levelname)s] %(message)s",
+# handlers = [
+#     logging.FileHandler(f'logs/LOG-{datetime.now().strftime("%Y-%m-%d %H_%M_%S")}.log'),
+#     logging.StreamHandler()
+# ]}
 
 sys.path.insert(1, '')  # if this isn't here, local imports fail in Docker. ¯\_(ツ)_/¯
 
@@ -47,7 +92,7 @@ class Bot(commands.Bot, ABC):
             self.channelDict[a.name] = a
 
         # Start cogs
-        logging.info(f"{ts.get_time_stamp()} Starting Cogs")
+        log.info(f"{ts.get_time_stamp()} Starting Cogs")
         self.add_cog(PinCog(bot, self))
         self.add_cog(TranslationCog(bot))
         # self.add_cog(EmojiRegistrationCog(bot, self))
@@ -64,5 +109,7 @@ class Bot(commands.Bot, ABC):
 
 
 # Create and start Bane Bot
-bot = Bot()
+intents = discord.Intents.all()
+
+bot = Bot(intents=intents)
 bot.run(os.environ.get('APIKEY'))

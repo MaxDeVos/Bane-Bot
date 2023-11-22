@@ -3,6 +3,6 @@ googletrans==4.0.0rc1
 markdownify~=0.10.3
 requests~=2.27.1
 beautifulsoup4~=4.10.0
-opencv-python~=4.5.5.62
-py-cord==2.0.0b4
+opencv-python
+py-cord==2.4.1
 emoji

@@ -8,6 +8,7 @@ from difflib import SequenceMatcher
 
 from src.TimestampGenerator import TimestampGenerator
 
+log = logging.getLogger(__name__)
 translator = Translator()
 ts = TimestampGenerator("LANG")
 
@@ -15,7 +16,7 @@ ts = TimestampGenerator("LANG")
 class TranslationCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        logging.info(f"{ts.get_time_stamp()} Successfully Started Translation Engine")
+        log.info(f"{ts.get_time_stamp()} Successfully Started Translation Engine")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -29,10 +30,13 @@ async def handle_translation(message):
         content = cleanse_emojis(message)
 
         lang = translator.detect(content)
-        if lang.lang == "es" or lang.lang == "de":
+
+        log.info(f"language: {lang.lang} @ {lang.confidence} |  message: {content} ")
+
+        if lang.lang == "es" or lang.lang == "de" or lang.lang == "iw":
 
             if determinePermissions(message, lang.lang):
-                logging.info(f"{ts.get_time_stamp()} {message.author.name} to {lang.lang} : {content}")
+                log.info(f"{ts.get_time_stamp()} {message.author.name} to {lang.lang} : {content}")
                 translation = translator.translate(content).text
 
                 similarity_index = similar(str(translation).lower(), str(content.lower()))
@@ -44,11 +48,11 @@ async def handle_translation(message):
                     await message.reply("**Translation:  **" + str(emojied_translation).replace("things", "stuff"),
                                         mention_author=False)
             else:
-                logging.info(f"{ts.get_time_stamp()} Denied {message.author.name} translation to {lang.lang}")
+                log.info(f"{ts.get_time_stamp()} Denied {message.author.name} translation to {lang.lang}")
     except TypeError:
         return
     except Exception as e:
-        logging.error(f"{ts.get_time_stamp()} {str(e)}")
+        log.error(f"{ts.get_time_stamp()} {str(e)}")
 
 
 def similar(a, b):
@@ -67,7 +71,7 @@ def replenesh_emojis(message: discord.Message, content):
     guild: discord.Guild
     guild = message.guild
 
-    logging.info(content)
+    log.info(content)
     i = 0
     for match in re.findall("(?<=<)(.*?)(?=>)", content):
         match = "<" + match + ">"
@@ -85,6 +89,8 @@ def determinePermissions(message, language):
         role_name = "Spanish Speakers"
     elif language == "de":
         role_name = "German Speakers"
+    elif language == "iw":
+        role_name = "Hebrew Speakers"
     else:
         return False
 
